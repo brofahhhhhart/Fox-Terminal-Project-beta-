@@ -1,0 +1,32 @@
+# Workflow para compilar o APK do Fox Terminal usando Buildozer no GitHub Actions.
+name: Build Android APK
+
+on: 
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Instalar Buildozer
+      run: pip install buildozer
+
+    - name: Configurar ambiente Buildozer e compilar APK
+      run: buildozer android debug
+
+    - name: Fazer upload do APK como artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: fox-terminal-apk
+        path: bin/*.apk
