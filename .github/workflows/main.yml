@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
 
+# Força Node.js 24 em todas as actions
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -22,9 +23,11 @@ jobs:
           buildozer-cmd: buildozer -v android debug
         timeout-minutes: 25
 
-      - name: List generated files
+      - name: List generated APK
         run: |
+          echo "=== Arquivos na pasta bin ==="
           ls -la bin/ || true
+          echo "=== Procurando APKs ==="
           find . -name "*.apk" -type f || true
 
       - name: Upload APK Artifact
