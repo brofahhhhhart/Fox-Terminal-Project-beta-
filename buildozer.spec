@@ -19,13 +19,19 @@ source.include_exts = py,png,jpg,kv,atlas,json
 version = 1.30.0
 
 # (list) Application requirements
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow,android
+requirements = python3,kivy==2.3.1,kivymd==2.0.1,pillow,android,materialyoucolor,exceptiongroup,asyncgui,asynckivy
 
 # (str) Supported orientations
 orientation = portrait
 
 # (bool) Indicate if the application should be fullscreen or not
 fullscreen = 0
+
+# (str) Icon of the application
+icon.filename = %(source.dir)s/icon.png
+
+# (str) Presplash of the application (tela de carregamento)
+presplash.filename = %(source.dir)s/presplash.png
 
 # (str) Presplash background color
 android.presplash_color = #141416
@@ -34,11 +40,8 @@ android.presplash_color = #141416
 # Android specific
 #
 
-# (list) Application requirements
-requirements = python3,kivy==2.3.1,kivymd>=2.0.0,pillow,requests,urllib3,android
-
 # (list) Permissions
-android.permissions = INTERNET, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO
+android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 
 # (int) Target Android API
 android.api = 33
