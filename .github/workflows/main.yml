@@ -1,33 +1,29 @@
-name: Build Fox Terminal Android App
+name: Build Fox Terminal APK
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build-android:
-    name: Build for Android
+  build:
     runs-on: ubuntu-latest
+    container:
+      image: kivy/buildozer:latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          # O diretório de trabalho onde o buildozer.spec está localizado. Por padrão, é a raiz do repositório.
-          workdir: .
-          buildozer_version: stable
-          # Comando para construir o APK de depuração. Pode ser 'buildozer android release' para um AAB de lançamento.
-          command: buildozer android debug
+      - name: Build APK
+        run: |
+          yes | buildozer android debug 2>&1 | tail -n 500
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
         with:
-          name: foxterminal-apk
-          path: ${{ steps.buildozer.outputs.filename }}
+          name: fox-terminal-apk
+          path: bin/*.apk
           
