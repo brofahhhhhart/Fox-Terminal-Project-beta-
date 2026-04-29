@@ -4,8 +4,9 @@ on:
   push:
     branches: [ main ]
 
+# Força Node.js 24 (remove warnings de depreciação)
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Força Node 24 (remove warnings futuros)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -23,7 +24,7 @@ jobs:
           echo "=== Iniciando build do APK (pode demorar 10\~20 minutos) ==="
           yes | buildozer -v android debug
 
-          echo "=== Verificando APK gerado ==="
+          echo "=== Verificando se o APK foi gerado ==="
           ls -la bin/ || true
           find . -name "*.apk" -type f || true
         shell: bash
