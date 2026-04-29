@@ -34,8 +34,11 @@ android.presplash_color = #141416
 # Android specific
 #
 
+# (list) Application requirements
+requirements = python3,kivy==2.3.1,kivymd>=2.0.0,pillow,requests,urllib3,android
+
 # (list) Permissions
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
+android.permissions = INTERNET, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO
 
 # (int) Target Android API
 android.api = 33
