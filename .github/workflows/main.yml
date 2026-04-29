@@ -19,11 +19,17 @@ jobs:
 
       - name: Build APK
         run: |
-          yes | buildozer android debug 2>&1 | tail -n 500
+          yes | buildozer android debug
+          echo "--- Listing bin directory ---"
+          find . -name "*.apk" -type f
+          ls -la bin/ || true
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
           name: fox-terminal-apk
-          path: bin/*.apk
+          path: |
+            bin/*.apk
+            .buildozer/android/platform/build-arm64-v8a/dists/foxterminal/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
           
