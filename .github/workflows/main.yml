@@ -4,7 +4,6 @@ on:
   push:
     branches: [ main ]
 
-# Força Node.js 24 (remove warnings de depreciação)
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -17,18 +16,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build APK with Buildozer
+        uses: docker://kivy/buildozer:latest   # ← Isso resolve o "command not found"
+        with:
+          args: buildozer -v android debug
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+      - name: List generated APK
         run: |
-          echo "=== Atualizando Cython para versão estável ==="
-          pip install --upgrade "Cython==0.29.36"
-
-          echo "=== Iniciando build do APK (pode demorar 10\~20 minutos) ==="
-          yes | buildozer -v android debug
-
-          echo "=== Verificando se o APK foi gerado ==="
           ls -la bin/ || true
           find . -name "*.apk" -type f || true
-        shell: bash
-        timeout-minutes: 25
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
