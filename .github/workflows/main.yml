@@ -9,27 +9,22 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: kivy/buildozer:latest
-
+    runs-on: ubuntu-22.04   # mais estável que ubuntu-latest em alguns casos
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Build APK
+      - name: Build APK with Buildozer
         run: |
-          yes | buildozer android debug
-          echo "--- Listing bin directory ---"
-          find . -name "*.apk" -type f
-          ls -la bin/ || true
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: fox-terminal-apk
-          path: |
-            bin/*.apk
-            .buildozer/android/platform/build-arm64-v8a/dists/foxterminal/build/outputs/apk/**/*.apk
-          if-no-files-found: warn
+          echo "=== Iniciando build do APK ==="
           
+          # Atualiza Cython (versão mais compatível atualmente)
+          pip install --upgrade "Cython==0.29.36"
+          
+          echo "=== Aceitando licenças do Android SDK ==="
+          yes | buildozer -v android debug
+          
+          echo "=== Verificando arquivos gerados ==="
+          ls -la bin/ || true
+          find . -name "*.apk" -type f || true
+        shell: bash
