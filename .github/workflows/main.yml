@@ -9,22 +9,29 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04   # mais estável que ubuntu-latest em alguns casos
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Build APK with Buildozer
         run: |
-          echo "=== Iniciando build do APK ==="
-          
-          # Atualiza Cython (versão mais compatível atualmente)
+          echo "=== Atualizando Cython (versão estável) ==="
           pip install --upgrade "Cython==0.29.36"
-          
-          echo "=== Aceitando licenças do Android SDK ==="
+
+          echo "=== Iniciando build do APK (pode demorar 8\~15 minutos) ==="
           yes | buildozer -v android debug
-          
-          echo "=== Verificando arquivos gerados ==="
+
+          echo "=== Verificando se o APK foi gerado ==="
           ls -la bin/ || true
           find . -name "*.apk" -type f || true
         shell: bash
+        timeout-minutes: 20
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fox-terminal-apk
+          path: bin/*.apk
+          if-no-files-found: warn
