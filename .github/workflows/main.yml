@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Força Node 24 (remove warnings futuros)
 
 jobs:
   build:
@@ -17,17 +17,17 @@ jobs:
 
       - name: Build APK with Buildozer
         run: |
-          echo "=== Atualizando Cython (versão estável) ==="
+          echo "=== Atualizando Cython para versão estável ==="
           pip install --upgrade "Cython==0.29.36"
 
-          echo "=== Iniciando build do APK (pode demorar 8\~15 minutos) ==="
+          echo "=== Iniciando build do APK (pode demorar 10\~20 minutos) ==="
           yes | buildozer -v android debug
 
-          echo "=== Verificando se o APK foi gerado ==="
+          echo "=== Verificando APK gerado ==="
           ls -la bin/ || true
           find . -name "*.apk" -type f || true
         shell: bash
-        timeout-minutes: 20
+        timeout-minutes: 25
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
