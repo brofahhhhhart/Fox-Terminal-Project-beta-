@@ -11,18 +11,16 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-env:
-  # Força Node.js 24 agora para evitar o aviso de depreciação
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 permissions:
   contents: write
 
 jobs:
 
-  # ─────────────────────────────────────────────
-  # JOB 1: Compilar o APK via Docker oficial
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────
+  # JOB 1: Compilar APK
+  # Usa ArtemSBulgakov/buildozer-action que gerencia o Docker
+  # internamente de forma segura no runner do GitHub Actions
+  # ─────────────────────────────────────────────────────────
   build-apk:
     name: Compilar APK
     runs-on: ubuntu-22.04
@@ -30,67 +28,62 @@ jobs:
 
     steps:
 
-      - name: Checkout do codigo
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: repo
 
-      # Cache do SDK/NDK (~4 GB) — economiza 20-30min por build
-      - name: Cache SDK e NDK Android
+      # Cache SDK/NDK — economiza ~30min nas proximas builds
+      - name: Cache SDK e NDK
         uses: actions/cache@v5
         with:
-          path: |
-            ~/.buildozer/android/platform/android-sdk
-            ~/.buildozer/android/platform/android-ndk-r25b
-          key: android-sdk-ndk-${{ runner.os }}-r25b
-          restore-keys: |
-            android-sdk-ndk-${{ runner.os }}-
+          path: .buildozer_global
+          key: buildozer-global-${{ hashFiles('repo/buildozer.spec') }}
+          restore-keys: buildozer-global-
 
-      # Cache das dependencias Python compiladas para aarch64
-      - name: Cache dependencias Python/p4a
+      # Cache dependencias compiladas
+      - name: Cache dependencias p4a
         uses: actions/cache@v5
         with:
-          path: .buildozer
-          key: buildozer-p4a-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: |
-            buildozer-p4a-${{ runner.os }}-
+          path: repo/.buildozer
+          key: buildozer-local-${{ runner.os }}-${{ hashFiles('repo/buildozer.spec') }}
+          restore-keys: buildozer-local-${{ runner.os }}-
 
-      # Usa o Docker oficial do buildozer (muito mais estavel que pip install)
-      # Cython 0.29.33 e obrigatorio — Cython 3.x quebra kivy 2.x
-      - name: Compilar APK com Docker buildozer
+      # Action oficial que usa o Docker do buildozer corretamente
+      - name: Build com buildozer-action
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          repository_root: repo
+          workdir: .
+          buildozer_version: stable
+          command: >-
+            pip3 install --user --upgrade Cython==0.29.33 virtualenv &&
+            buildozer -v android debug
+
+      # Mostra o que foi gerado
+      - name: Verificar APK
         run: |
-          docker run --rm \
-            -v "$HOME/.buildozer":/home/user/.buildozer \
-            -v "$PWD":/home/user/hostcwd \
-            kivy/buildozer:latest \
-            bash -c "
-              cd /home/user/hostcwd &&
-              pip install --quiet Cython==0.29.33 &&
-              buildozer -v android debug 2>&1
-            "
+          echo "=== Output do buildozer ==="
+          echo "Filename: ${{ steps.buildozer.outputs.filename }}"
+          ls -lh repo/bin/ 2>/dev/null || echo "bin/ nao encontrado"
 
-      # Mostra o APK gerado para confirmar
-      - name: Listar APK gerado
-        run: |
-          echo "=== Conteudo de bin/ ==="
-          ls -lh bin/ 2>/dev/null || echo "ATENCAO: pasta bin/ nao encontrada"
-          echo "=== APKs encontrados ==="
-          find . -name "*.apk" 2>/dev/null || echo "Nenhum APK encontrado"
-
-      # Upload do APK — disponivel 30 dias na aba Actions
+      # Upload usando o caminho retornado pela action
       - name: Upload APK
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: FoxTerminal-${{ github.run_number }}-APK
-          path: |
-            bin/*.apk
-            **/*.apk
+          name: FoxTerminal-${{ github.run_number }}
+          path: ${{ steps.buildozer.outputs.filename }}
           retention-days: 30
           if-no-files-found: warn
 
-  # ─────────────────────────────────────────────
-  # JOB 2: GitHub Release ao fazer push de tag
-  # Como usar: git tag v1.34.0 && git push --tags
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────
+  # JOB 2: Release ao fazer push de tag v*
+  # Como usar:
+  #   git tag v1.34.0
+  #   git push --tags
+  # ─────────────────────────────────────────────────────────
   create-release:
     name: Criar GitHub Release
     runs-on: ubuntu-22.04
@@ -102,14 +95,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Baixar APK gerado
+      - name: Baixar APK
         uses: actions/download-artifact@v4
         with:
-          name: FoxTerminal-${{ github.run_number }}-APK
+          name: FoxTerminal-${{ github.run_number }}
           path: ./release
-
-      - name: Listar arquivos para release
-        run: ls -lh ./release/
 
       - name: Criar Release
         uses: softprops/action-gh-release@v2
@@ -121,12 +111,10 @@ jobs:
             ### Como instalar
             1. Baixe o arquivo `.apk` abaixo
             2. No Android: Configuracoes > Seguranca > Fontes desconhecidas
-            3. Abra o arquivo `.apk` e instale
-
-            Compilado automaticamente via GitHub Actions.
+            3. Abra e instale o `.apk`
           draft: false
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
-          files: ./release/**/*.apk
+          files: ./release/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
