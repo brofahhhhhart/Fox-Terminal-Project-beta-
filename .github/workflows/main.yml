@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
 
+# Força Node.js 24 em todas as GitHub Actions (evita warnings e problemas futuros)
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -20,13 +21,15 @@ jobs:
         with:
           buildozer_version: stable
           command: |
+            echo "=== Atualizando Cython ==="
             pip install --upgrade "Cython==0.29.36"
+            echo "=== Iniciando build (pode demorar 10-20 minutos) ==="
             yes | buildozer -v android debug
         timeout-minutes: 30
 
       - name: Show build result
         if: always()
         run: |
-          echo "=== STATUS FINAL ==="
-          ls -la bin/ || echo "Pasta bin não existe ou está vazia"
+          echo "=== STATUS FINAL DO BUILD ==="
+          ls -la bin/ || echo "Pasta bin não existe"
           find . -name "*.apk" -type f || echo "Nenhum APK encontrado"
