@@ -1,9 +1,5 @@
 # Fox Terminal - Build APK
 # Arquivo: .github/workflows/main.yml
-#
-# Abordagem: instalacao nativa do buildozer no runner Ubuntu.
-# Sem Docker, sem buildozer-action — evita o bug de chown/user
-# que quebra qualquer action baseada no container do buildozer.
 
 name: Build Fox Terminal APK
 
@@ -33,20 +29,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      # Java 17 e necessario para o Gradle do Android SDK
       - name: Instalar Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      # Python 3.11
       - name: Instalar Python 3.11
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
-      # Dependencias do sistema necessarias para compilar kivy/p4a
       - name: Instalar dependencias do sistema
         run: |
           sudo apt-get update -qq
@@ -57,9 +50,9 @@ jobs:
             libltdl-dev \
             autoconf automake libtool \
             pkg-config \
-            lld
+            lld \
+            cmake
 
-      # Cache do SDK/NDK — evita baixar 2-3 GB a cada build
       - name: Cache Android SDK e NDK
         uses: actions/cache@v5
         with:
@@ -68,7 +61,6 @@ jobs:
           restore-keys: |
             buildozer-home-${{ runner.os }}-
 
-      # Cache da pasta .buildozer local (dependencias compiladas)
       - name: Cache build local
         uses: actions/cache@v5
         with:
@@ -78,28 +70,21 @@ jobs:
             buildozer-local-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
             buildozer-local-${{ runner.os }}-
 
-      # Instala buildozer, Cython e python-for-android com suporte AAB
-      - name: Instalar buildozer e Cython
+      - name: Instalar buildozer e dependencias
         run: |
           pip install --upgrade pip setuptools wheel
           pip install Cython==0.29.33
-          pip install python-for-android
-          pip install buildozer==1.5.0
+          pip install git+https://github.com/kivy/python-for-android.git@develop
+          pip install git+https://github.com/kivy/buildozer.git@master
 
-      # Aceita licencas do Android SDK
-      - name: Aceitar licencas Android SDK
+      - name: Compilar APK
         run: |
           mkdir -p ~/.android
           echo "count=0" > ~/.android/repositories.cfg
-
-      # Compilar o APK
-      - name: Compilar APK
-        run: |
-          yes | buildozer -v android debug
+          buildozer -v android debug
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
 
-      # Mostrar resultado
       - name: Verificar APK
         if: always()
         run: |
@@ -108,7 +93,6 @@ jobs:
           echo "=== Todos APKs no projeto ==="
           find . -name "*.apk" 2>/dev/null | head -20
 
-      # Upload do APK gerado
       - name: Upload APK
         uses: actions/upload-artifact@v7
         if: always()
@@ -118,8 +102,6 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  # Cria Release automatica ao fazer push de tag v*
-  # Como usar: git tag v1.34.0 && git push --tags
   create-release:
     name: Criar GitHub Release
     runs-on: ubuntu-22.04
