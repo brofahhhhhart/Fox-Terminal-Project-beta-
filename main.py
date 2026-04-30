@@ -60,25 +60,38 @@ EXPORT_DIR   = None
 def _init_paths(data_dir: str):
     global DATA_DIR, HISTORY_FILE, MODS_FILE, ALIAS_FILE
     global ENV_FILE, SESSION_FILE, EXPORT_DIR
-    DATA_DIR     = data_dir
+    DATA_DIR = data_dir
     os.makedirs(DATA_DIR, exist_ok=True)
+    
+    # Arquivos internos (Sempre funcionam)
     HISTORY_FILE = os.path.join(DATA_DIR, "fox_history.json")
     MODS_FILE    = os.path.join(DATA_DIR, "fox_mods.json")
     ALIAS_FILE   = os.path.join(DATA_DIR, "fox_alias.json")
     ENV_FILE     = os.path.join(DATA_DIR, "fox_env.json")
     SESSION_FILE = os.path.join(DATA_DIR, "fox_session.json")
+
+    # Correção para Android 15: Evita crash se não houver permissão de pasta externa
     if platform == "android":
         try:
+            # Tenta usar a pasta FoxTerminal na memória interna visível
             from android.storage import primary_external_storage_path
-            EXPORT_DIR = os.path.join(
-                primary_external_storage_path(), "FoxTerminal", "exports"
-            )
+            base = primary_external_storage_path()
+            if base:
+                EXPORT_DIR = os.path.join(base, "FoxTerminal", "exports")
+            else:
+                EXPORT_DIR = os.path.join(DATA_DIR, "exports")
         except Exception:
             EXPORT_DIR = os.path.join(DATA_DIR, "exports")
     else:
         EXPORT_DIR = os.path.join(DATA_DIR, "exports")
-    os.makedirs(EXPORT_DIR, exist_ok=True)
-
+    
+    try:
+        os.makedirs(EXPORT_DIR, exist_ok=True)
+    except Exception:
+        # Se falhar (comum no Android 15 sem MANAGE_EXTERNAL_STORAGE), usa a pasta do app
+        EXPORT_DIR = os.path.join(DATA_DIR, "exports")
+        os.makedirs(EXPORT_DIR, exist_ok=True)
+      
 # ─── JSON helpers ─────────────────────────────────────────────────────────────
 def _load_json(path, default):
     if not path:
