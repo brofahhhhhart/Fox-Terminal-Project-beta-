@@ -4,9 +4,6 @@ on:
   push:
     branches: [ main ]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -15,18 +12,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build APK with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        with:
-          buildozer_version: stable
-          command: |
-            pip install --upgrade "Cython==0.29.36"
-            yes | buildozer -v android debug
-        timeout-minutes: 35
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            python3-pip \
+            build-essential \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            libffi-dev \
+            libssl-dev \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo5 \
+            cmake \
+            libffi-dev
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install "Cython==0.29.36" buildozer
+
+      - name: Accept Android licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
+      - name: Build APK
+        run: |
+          buildozer android debug
 
       - name: Show build files
         if: always()
         run: |
           echo "=== ARQUIVOS GERADOS ==="
-          ls -la bin/ 2>/dev/null || echo "Pasta bin não existe"
+          ls -la bin/ || echo "Pasta bin não existe"
           find . -name "*.apk" -type f || echo "Nenhum APK encontrado"
