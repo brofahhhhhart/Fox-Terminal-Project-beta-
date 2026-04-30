@@ -78,24 +78,24 @@ jobs:
             buildozer-local-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
             buildozer-local-${{ runner.os }}-
 
-      # Instala buildozer e Cython compativel com kivy 2.x
+      # Instala buildozer, Cython e python-for-android com suporte AAB
       - name: Instalar buildozer e Cython
         run: |
           pip install --upgrade pip setuptools wheel
           pip install Cython==0.29.33
-          pip install buildozer
+          pip install python-for-android
+          pip install buildozer==1.5.0
 
       # Aceita licencas do Android SDK
       - name: Aceitar licencas Android SDK
         run: |
           mkdir -p ~/.android
           echo "count=0" > ~/.android/repositories.cfg
-          yes | buildozer android update 2>/dev/null || true
 
       # Compilar o APK
       - name: Compilar APK
         run: |
-          buildozer -v android debug
+          yes | buildozer -v android debug
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
 
