@@ -4,49 +4,57 @@ on:
   push:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Install system dependencies
         run: |
           sudo apt update
           sudo apt install -y \
-            python3-pip \
-            build-essential \
-            git \
-            zip \
-            unzip \
-            openjdk-17-jdk \
-            libffi-dev \
-            libssl-dev \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo5 \
-            cmake \
-            libffi-dev
+            git zip unzip openjdk-17-jdk \
+            python3-pip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake libffi-dev libssl-dev
 
       - name: Install Python dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          pip install "Cython==0.29.36" buildozer
+          python -m pip install --upgrade pip
+          pip install Cython==0.29.36 buildozer
 
-      - name: Accept Android licenses
+      - name: Initialize Buildozer (se necessário)
         run: |
-          yes | sdkmanager --licenses || true
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
 
       - name: Build APK
         run: |
-          buildozer android debug
+          buildozer android clean
+          buildozer -v android debug
 
-      - name: Show build files
+      - name: List APK files
         if: always()
         run: |
-          echo "=== ARQUIVOS GERADOS ==="
-          ls -la bin/ || echo "Pasta bin não existe"
-          find . -name "*.apk" -type f || echo "Nenhum APK encontrado"
+          echo "=== APK GERADO ==="
+          find . -name "*.apk" -type f
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: ./**/*.apk
