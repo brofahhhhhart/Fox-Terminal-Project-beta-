@@ -40,7 +40,7 @@ android.presplash_color = #141416
 #
 
 # (list) Permissions
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
+android.permissions = INTERNET, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, MANAGE_EXTERNAL_STORAGE
 
 # (int) Target Android API
 android.api = 35
