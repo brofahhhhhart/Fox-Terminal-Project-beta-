@@ -1,4 +1,4 @@
-name: Build APK FINAL FIX
+name: Build APK Fox Terminal
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python (CORRIGIDO)
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -52,6 +52,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install Cython==0.29.36 buildozer
 
+      - name: Debug files (IMPORTANTE)
+        run: |
+          echo "=== ARQUIVOS ==="
+          ls -la
+
       - name: Build APK
         run: |
           buildozer android clean
@@ -66,5 +71,5 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: apk
+          name: fox-terminal-apk
           path: ./**/*.apk
