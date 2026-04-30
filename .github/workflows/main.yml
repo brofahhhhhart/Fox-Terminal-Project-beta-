@@ -1,41 +1,31 @@
-# ════════════════════════════════════════════════════════════════
-#  Fox Terminal — GitHub Actions Build
-#  Arquivo: .github/workflows/main.yml
-#
-#  Actions 2025 (obrigatorio):
-#    actions/checkout@v4
-#    actions/cache@v5
-#    actions/upload-artifact@v4
-#    actions/setup-python@v5
-#    actions/download-artifact@v4
-#    ArtemSBulgakov/buildozer-action@v1
-#    softprops/action-gh-release@v2
-#
-#  move_binary.py foi removido — o upload do APK
-#  agora e feito diretamente pelo upload-artifact@v4.
-# ════════════════════════════════════════════════════════════════
+# Fox Terminal - Build APK
+# Arquivo: .github/workflows/main.yml
 
 name: Build Fox Terminal APK
 
 on:
   push:
     branches: [main, master]
-    tags:    ['v*']
+    tags: ['v*']
   pull_request:
     branches: [main, master]
-  workflow_dispatch:        # permite rodar manualmente na aba Actions
+  workflow_dispatch:
+
+env:
+  # Força Node.js 24 agora para evitar o aviso de depreciação
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
-  contents: write           # necessario para criar Releases
+  contents: write
 
 jobs:
 
-  # ──────────────────────────────────────────────
-  # JOB 1: Compilar o APK
-  # ──────────────────────────────────────────────
+  # ─────────────────────────────────────────────
+  # JOB 1: Compilar o APK via Docker oficial
+  # ─────────────────────────────────────────────
   build-apk:
     name: Compilar APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 90
 
     steps:
@@ -43,66 +33,69 @@ jobs:
       - name: Checkout do codigo
         uses: actions/checkout@v4
 
-      # Cache do SDK/NDK (~4 GB) — reutilizado entre builds
+      # Cache do SDK/NDK (~4 GB) — economiza 20-30min por build
       - name: Cache SDK e NDK Android
         uses: actions/cache@v5
         with:
-          path: ~/.buildozer
-          key: buildozer-sdk-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          path: |
+            ~/.buildozer/android/platform/android-sdk
+            ~/.buildozer/android/platform/android-ndk-r25b
+          key: android-sdk-ndk-${{ runner.os }}-r25b
           restore-keys: |
-            buildozer-sdk-${{ runner.os }}-
+            android-sdk-ndk-${{ runner.os }}-
 
-      # Instala dependencias do sistema necessarias para kivy/p4a
-      - name: Instalar dependencias do sistema
+      # Cache das dependencias Python compiladas para aarch64
+      - name: Cache dependencias Python/p4a
+        uses: actions/cache@v5
+        with:
+          path: .buildozer
+          key: buildozer-p4a-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-p4a-${{ runner.os }}-
+
+      # Usa o Docker oficial do buildozer (muito mais estavel que pip install)
+      # Cython 0.29.33 e obrigatorio — Cython 3.x quebra kivy 2.x
+      - name: Compilar APK com Docker buildozer
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y \
-            git zip unzip openjdk-17-jdk \
-            libffi-dev libssl-dev python3-pip \
-            build-essential libltdl-dev \
-            autoconf libtool pkg-config
+          docker run --rm \
+            -v "$HOME/.buildozer":/home/user/.buildozer \
+            -v "$PWD":/home/user/hostcwd \
+            kivy/buildozer:latest \
+            bash -c "
+              cd /home/user/hostcwd &&
+              pip install --quiet Cython==0.29.33 &&
+              buildozer -v android debug 2>&1
+            "
 
-      # Instala o buildozer e Cython compativel com kivy 2.x
-      - name: Instalar Buildozer e Cython
+      # Mostra o APK gerado para confirmar
+      - name: Listar APK gerado
         run: |
-          pip3 install --upgrade pip
-          pip3 install --upgrade \
-            buildozer \
-            Cython==0.29.33 \
-            virtualenv
+          echo "=== Conteudo de bin/ ==="
+          ls -lh bin/ 2>/dev/null || echo "ATENCAO: pasta bin/ nao encontrada"
+          echo "=== APKs encontrados ==="
+          find . -name "*.apk" 2>/dev/null || echo "Nenhum APK encontrado"
 
-      # Compila o APK
-      - name: Compilar APK (buildozer android debug)
-        run: |
-          buildozer -v android debug
-        env:
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-
-      # Lista o APK gerado para confirmar
-      - name: Verificar APK gerado
-        run: |
-          echo "=== Arquivos em bin/ ==="
-          ls -lh bin/ || echo "Pasta bin/ nao encontrada"
-
-      # Upload do APK — fica disponivel 30 dias na aba Actions
-      - name: Upload APK como artifact
+      # Upload do APK — disponivel 30 dias na aba Actions
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: FoxTerminal-APK-${{ github.run_number }}
-          path: bin/*.apk
+          name: FoxTerminal-${{ github.run_number }}-APK
+          path: |
+            bin/*.apk
+            **/*.apk
           retention-days: 30
           if-no-files-found: warn
 
-  # ──────────────────────────────────────────────
-  # JOB 2: Criar Release ao fazer push de tag v*
-  # Ex: git tag v1.34.0 && git push --tags
-  # ──────────────────────────────────────────────
+  # ─────────────────────────────────────────────
+  # JOB 2: GitHub Release ao fazer push de tag
+  # Como usar: git tag v1.34.0 && git push --tags
+  # ─────────────────────────────────────────────
   create-release:
     name: Criar GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: build-apk
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && success()
 
     steps:
 
@@ -112,28 +105,28 @@ jobs:
       - name: Baixar APK gerado
         uses: actions/download-artifact@v4
         with:
-          name: FoxTerminal-APK-${{ github.run_number }}
+          name: FoxTerminal-${{ github.run_number }}-APK
           path: ./release
 
-      - name: Criar Release com APK anexado
+      - name: Listar arquivos para release
+        run: ls -lh ./release/
+
+      - name: Criar Release
         uses: softprops/action-gh-release@v2
         with:
           name: Fox Terminal ${{ github.ref_name }}
           body: |
             ## Fox Terminal ${{ github.ref_name }}
 
-            ### Como instalar no Android
+            ### Como instalar
             1. Baixe o arquivo `.apk` abaixo
-            2. Abra o arquivo no celular
-            3. Se necessario, ative **Fontes desconhecidas** em
-               Configuracoes > Seguranca
-            4. Instale normalmente
+            2. No Android: Configuracoes > Seguranca > Fontes desconhecidas
+            3. Abra o arquivo `.apk` e instale
 
-            ---
             Compilado automaticamente via GitHub Actions.
           draft: false
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
-          files: ./release/*.apk
+          files: ./release/**/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
