@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build APK with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1   # Action oficial recomendada pelo Kivy
+        uses: ArtemSBulgakov/buildozer-action@v1
         with:
           buildozer_version: stable
           command: |
@@ -24,18 +24,9 @@ jobs:
             yes | buildozer -v android debug
         timeout-minutes: 30
 
-      - name: List generated files
+      - name: Show build result
         if: always()
         run: |
-          echo "=== Conteúdo da pasta bin ==="
-          ls -la bin/ || true
-          echo "=== Procurando arquivos .apk ==="
-          find . -name "*.apk" -type f || true
-
-      - name: Upload APK Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fox-terminal-apk
-          path: bin/*.apk
-          if-no-files-found: warn
+          echo "=== STATUS FINAL ==="
+          ls -la bin/ || echo "Pasta bin não existe ou está vazia"
+          find . -name "*.apk" -type f || echo "Nenhum APK encontrado"
