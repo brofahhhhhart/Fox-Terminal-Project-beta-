@@ -19,7 +19,7 @@ source.include_exts = py,png,jpg,kv,atlas,json
 version = 1.30.0
 
 # (list) Application requirements
-requirements = python3,kivy==2.3.1,https://github.com/kivymd/KivyMD/archive/master.zip,materialyoucolor,pillow
+requirements = python3,kivy==2.2.1,kivymd==1.1.1,pillow,certifi
 
 # (str) Presplash of the application
 presplash.filename = %(source.dir)s/presplash.png
@@ -44,13 +44,16 @@ android.presplash_color = #141416
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 
 # (int) Target Android API
-android.api = 34
+android.api = 33
 
 # (int) Minimum API your APK will support
-android.minapi = 24
+android.minapi = 21
 
 # (int) Android NDK API to use
-android.ndk_api = 24
+android.ndk_api = 21
+
+# (str) Android NDK version to use
+android.ndk = 25b
 
 # (bool) Accept SDK license agreement automatically
 android.accept_sdk_license = True
