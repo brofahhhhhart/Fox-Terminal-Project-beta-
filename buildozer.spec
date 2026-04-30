@@ -19,7 +19,7 @@ source.include_exts = py,png,jpg,kv,atlas,json
 version = 1.30.0
 
 # (list) Application requirements
-requirements = python3,kivy==2.2.1,kivymd==1.1.1,pillow,certifi
+requirements = python3,kivy==2.3.1,kivymd==2.0.1,materialyoucolor,exceptiongroup,asyncgui,asynckivy,pillow,requests,urllib3,charset-normalizer,idna,certifi
 
 # (str) Presplash of the application
 presplash.filename = %(source.dir)s/presplash.png
