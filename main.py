@@ -38,7 +38,7 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.utils import platform
 from kivy.metrics import dp
 
-Window.softinput_mode = 'below_target'
+Window.softinput_mode = 'pan'
 
 VERSION = "v1.34.0"
 
