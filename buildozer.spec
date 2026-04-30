@@ -19,10 +19,9 @@ source.include_exts = py,png,jpg,kv,atlas,json
 version = 1.30.0
 
 # (list) Application requirements
-requirements = python3,kivy==2.3.1,kivymd==2.0.1,materialyoucolor,exceptiongroup,asyncgui,asynckivy,pillow,requests,urllib3,charset-normalizer,idna,certifi
-
-# (str) Presplash of the application
-presplash.filename = %(source.dir)s/presplash.png
+# IMPORTANTE: main.py usa KivyMD 1.2.0 (MDTopAppBar, MDRaisedButton, OneLineIconListItem)
+# NAO usar KivyMD 2.0.x pois a API mudou completamente
+requirements = python3,kivy==2.3.1,kivymd==1.2.0,pillow,requests,urllib3,charset-normalizer,idna,certifi
 
 # (str) Icon of the application
 icon.filename = %(source.dir)s/icon.png
@@ -33,7 +32,7 @@ orientation = portrait
 # (bool) Indicate if the application should be fullscreen or not
 fullscreen = 0
 
-# (str) Presplash background color
+# (str) Presplash background color (cor de fundo enquanto carrega)
 android.presplash_color = #141416
 
 #
@@ -75,5 +74,5 @@ p4a.branch = develop
 # (int) Log level (0 = error only, 1 = info, 2 = debug)
 log_level = 2
 
-# (int) Display warning if buildozer is run as root
-warn_on_root = 1
+# (int) Display warning if buildozer is run as root (0 = False, 1 = True)
+warn_on_root = 0
