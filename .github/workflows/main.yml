@@ -4,7 +4,6 @@ on:
   push:
     branches: [ main ]
 
-# Força Node.js 24 em todas as actions
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -17,20 +16,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build APK with Buildozer
-        uses: digreatbrian/buildozer-action@v2
+        uses: ArtemSBulgakov/buildozer-action@v1   # Action oficial recomendada pelo Kivy
         with:
-          python-version: "3.11"
-          buildozer-cmd: buildozer -v android debug
-        timeout-minutes: 25
+          buildozer_version: stable
+          command: |
+            pip install --upgrade "Cython==0.29.36"
+            yes | buildozer -v android debug
+        timeout-minutes: 30
 
-      - name: List generated APK
+      - name: List generated files
+        if: always()
         run: |
-          echo "=== Arquivos na pasta bin ==="
+          echo "=== Conteúdo da pasta bin ==="
           ls -la bin/ || true
-          echo "=== Procurando APKs ==="
+          echo "=== Procurando arquivos .apk ==="
           find . -name "*.apk" -type f || true
 
       - name: Upload APK Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: fox-terminal-apk
