@@ -42,6 +42,7 @@ jobs:
           buildozer -v android debug
         env:
           HOME: /home/user
+          BUILDOZER_WARN_ON_ROOT: "0"
 
       - name: Verificar APK
         if: always()
