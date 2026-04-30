@@ -45,7 +45,7 @@ VERSION = "v1.34.0"
 # ─── Firebase REST API ────────────────────────────────────────────────────────
 # Troque pela sua Web API Key do Firebase Console
 # (Projeto > Configuracoes > Geral > Chave de API da Web)
-FIREBASE_API_KEY = "SUA_API_KEY_AQUI"
+FIREBASE_API_KEY = "AIzaSyCfnQlrZ1x3EL5QtcN2V1oo7FY_VIiDdMA"
 FIREBASE_BASE    = "https://identitytoolkit.googleapis.com/v1/accounts"
 
 # ─── Dados persistentes ───────────────────────────────────────────────────────
