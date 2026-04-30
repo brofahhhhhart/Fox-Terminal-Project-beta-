@@ -1,5 +1,9 @@
 # Fox Terminal - Build APK
 # Arquivo: .github/workflows/main.yml
+#
+# Abordagem: instalacao nativa do buildozer no runner Ubuntu.
+# Sem Docker, sem buildozer-action — evita o bug de chown/user
+# que quebra qualquer action baseada no container do buildozer.
 
 name: Build Fox Terminal APK
 
@@ -23,52 +27,96 @@ jobs:
 
     steps:
 
-      # SEM "path: repo" — checkout direto na raiz
-      # Isso corrige o erro de chown que quebrava a buildozer-action
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Cache SDK e NDK Android
+      # Java 17 e necessario para o Gradle do Android SDK
+      - name: Instalar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Python 3.11 — mesmo usado no buildozer.spec
+      - name: Instalar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Dependencias do sistema necessarias para compilar kivy/p4a
+      - name: Instalar dependencias do sistema
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            git zip unzip \
+            libffi-dev libssl-dev \
+            build-essential \
+            libltdl-dev \
+            autoconf automake libtool \
+            pkg-config \
+            lld
+
+      # Cache do SDK/NDK — evita baixar 2-3 GB a cada build
+      - name: Cache Android SDK e NDK
         uses: actions/cache@v5
         with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-global-
+          path: ~/.buildozer
+          key: buildozer-home-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-home-${{ runner.os }}-
 
-      - name: Cache dependencias p4a
+      # Cache da pasta .buildozer local (dependencias compiladas)
+      - name: Cache build local
         uses: actions/cache@v5
         with:
           path: .buildozer
-          key: buildozer-local-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-local-${{ runner.os }}-
+          key: buildozer-local-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-${{ github.sha }}
+          restore-keys: |
+            buildozer-local-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-
+            buildozer-local-${{ runner.os }}-
 
-      - name: Build com buildozer-action
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          workdir: .
-          buildozer_version: stable
-          command: >-
-            pip3 install --user --upgrade Cython==0.29.33 virtualenv &&
-            buildozer -v android debug
+      # Instala buildozer e Cython compativel com kivy 2.x
+      - name: Instalar buildozer e Cython
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install Cython==0.29.33
+          pip install buildozer
 
-      - name: Verificar APK gerado
+      # Aceita licencas do Android SDK
+      - name: Aceitar licencas Android SDK
+        run: |
+          mkdir -p ~/.android
+          echo "count=0" > ~/.android/repositories.cfg
+          yes | buildozer android update 2>/dev/null || true
+
+      # Compilar o APK
+      - name: Compilar APK
+        run: |
+          buildozer -v android debug
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+
+      # Mostrar resultado
+      - name: Verificar APK
         if: always()
         run: |
-          echo "=== bin/ ==="
+          echo "=== Conteudo de bin/ ==="
           ls -lh bin/ 2>/dev/null || echo "bin/ nao encontrado"
-          echo "=== filename output ==="
-          echo "${{ steps.buildozer.outputs.filename }}"
+          echo "=== Todos APKs no projeto ==="
+          find . -name "*.apk" 2>/dev/null | head -20
 
+      # Upload do APK gerado
       - name: Upload APK
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: FoxTerminal-${{ github.run_number }}
+          name: FoxTerminal-debug-${{ github.run_number }}
           path: bin/*.apk
           retention-days: 30
           if-no-files-found: warn
 
+  # Cria Release automatica ao fazer push de tag v*
+  # Como usar: git tag v1.34.0 && git push --tags
   create-release:
     name: Criar GitHub Release
     runs-on: ubuntu-22.04
@@ -83,7 +131,7 @@ jobs:
       - name: Baixar APK
         uses: actions/download-artifact@v4
         with:
-          name: FoxTerminal-${{ github.run_number }}
+          name: FoxTerminal-debug-${{ github.run_number }}
           path: ./release
 
       - name: Criar Release
@@ -93,10 +141,10 @@ jobs:
           body: |
             ## Fox Terminal ${{ github.ref_name }}
 
-            ### Como instalar
-            1. Baixe o `.apk` abaixo
-            2. Configuracoes > Seguranca > Fontes desconhecidas
-            3. Instale o `.apk`
+            ### Como instalar no Android
+            1. Baixe o arquivo `.apk` abaixo
+            2. Va em Configuracoes > Seguranca > Fontes desconhecidas
+            3. Abra o `.apk` e instale
           draft: false
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           files: ./release/**
